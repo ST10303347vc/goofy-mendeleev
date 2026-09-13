@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>静 — Quiet Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        jp: ['Inter', 'sans-serif'], // Redirect JP to Inter
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        ink: {
+                            DEFAULT: '#000000',
+                            soft: '#333333',
+                            faint: '#888888',
+                        },
+                        paper: {
+                            DEFAULT: '#ffffff',
+                            deep: '#f9f9f9',
+                        },
+                        sakura: '#111111',  // Replaced with sharp black/neutral accents
+                        moss: '#000000',    // Replaced with black
+                        indigo: '#0055ff',  // Vivid structural blue
+                        goldc: '#e5b500',   // Sharp gold
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Vue.js 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="h-screen overflow-hidden text-ink-soft antialiased p-4 sm:p-6 relative">
+
+    <!-- Background Scene Removed for Minimalist Theme -->
+
+    <div id="app" class="w-full h-full max-w-[1600px] mx-auto flex flex-col gap-4 sm:gap-6 relative z-10">
+
+        <!-- TOP SECTION -->
+        <div class="flex h-[45%] gap-4 sm:gap-6 w-full flex-shrink-0">
+
+            <!-- TOP LEFT: 30% Width -->
+            <div class="w-[30%] glass-panel p-5 flex flex-col h-full overflow-hidden justify-center">
+                <h2 class="label-jp mb-4 flex items-center justify-between">
+                    <span class="flex items-center gap-2">
+                        <i class="ph-light ph-circle-notch text-ink-faint animate-spin-slow"></i>
+                        Priority
+                    </span>
+                </h2>
+                <div class="grid grid-cols-2 gap-3 xl:gap-4 flex-1 items-center">
+
+                    <!-- Dynamic Task Cards -->
+                    <div v-for="task in inProgressTasks" :key="task.id" @click="toggleTask(task)" class="ink-card p-3 xl:p-4 flex flex-col justify-between h-full cursor-pointer group">
+                        <h3 class="text-xs xl:text-sm font-medium text-ink tracking-tight line-clamp-2 leading-snug mb-2 group-hover:text-indigo transition-colors duration-500">{{ task.title }}</h3>
+                        <div>
+                            <div class="flex justify-between text-[9px] font-mono text-ink-faint mb-1.5 uppercase">
+                                <span>Progress</span>
+                                <span class="text-ink-soft">{{ Math.round(task.progress) }}%</span>
+                            </div>
+                            <div class="stroke-track h-[3px]">
+                                <div class="stroke-fill bg-indigo" :style="{ width: task.progress + '%' }"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Empty Slots -->
+                    <div v-for="i in 4 - inProgressTasks.length" :key="'empty-'+i" class="ink-slot p-3 xl:p-4 flex flex-col justify-center items-center h-full opacity-70 hover:opacity-100 cursor-pointer" @click="showTaskModal = true">
+                        <i class="ph-thin ph-plus text-ink-faint text-lg mb-1.5"></i>
+                        <span class="text-[9px] font-mono text-ink-faint uppercase tracking-[0.2em] text-center">Empty<br>Slot</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TOP RIGHT: 70% Width -->
+            <div class="flex-1 glass-panel p-6 sm:p-8 flex flex-col h-full overflow-hidden justify-between relative">
+                <!-- Day Time Progress Background -->
+                <div class="absolute inset-y-0 left-0 bg-ink/5 transition-all duration-[1000ms] ease-out z-0 pointer-events-none" :style="{ width: dayTimeProgress + '%' }"></div>
+
+                <div class="flex justify-between items-start mb-2 relative z-10">
+                    <span @click="showHabitsModal = true" class="seal cursor-pointer hover:opacity-70 transition-opacity" title="Habits">{{ currentDate.toUpperCase() }}</span>
+                    <span @click="showArchiveModal = true" class="font-mono text-5xl xl:text-7xl font-light text-ink tracking-tighter tabular-nums cursor-pointer hover:opacity-70 transition-opacity" title="View Archive">{{ currentTime }}</span>
+                </div>
+
+                <div class="space-y-4 xl:space-y-6 w-full max-w-2xl relative z-10">
+                    <div class="relative w-full h-8 bg-ink/5 rounded-full overflow-hidden">
+                        <div class="absolute inset-0 flex items-center justify-between px-4 pointer-events-none">
+                            <span class="text-[10px] label-jp text-ink-soft">Year Progress</span>
+                            <span class="text-[10px] font-mono text-ink-soft tracking-normal">{{ yearProgress }}%</span>
+                        </div>
+                        <div class="absolute inset-0 bg-ink-faint rounded-full flex items-center justify-between px-4 pointer-events-none transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]" :style="{ clipPath: `inset(0 ${100 - yearProgress}% 0 0)` }">
+                            <span class="text-[10px] label-jp text-paper">Year Progress</span>
+                            <span class="text-[10px] font-mono text-paper tracking-normal">{{ yearProgress }}%</span>
+                        </div>
+                    </div>
+                    <div class="relative w-full h-8 bg-ink/5 rounded-full overflow-hidden">
+                        <div class="absolute inset-0 flex items-center justify-between px-4 pointer-events-none">
+                            <span class="text-[10px] label-jp text-ink-soft">Your Progress</span>
+                            <span class="text-[10px] font-mono text-ink-soft tracking-normal">{{ yourProgress }}%</span>
+                        </div>
+                        <div class="absolute inset-0 bg-indigo rounded-full flex items-center justify-between px-4 pointer-events-none transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]" :style="{ clipPath: `inset(0 ${100 - yourProgress}% 0 0)` }">
+                            <span class="text-[10px] label-jp text-paper">Your Progress</span>
+                            <span class="text-[10px] font-mono text-paper tracking-normal">{{ yourProgress }}%</span>
+                        </div>
+                    </div>
+                    <div class="relative w-full h-8 bg-ink/5 rounded-full overflow-hidden">
+                        <div class="absolute inset-0 flex items-center justify-between px-4 pointer-events-none">
+                            <span class="text-[10px] label-jp text-ink-soft">Fitness Progress</span>
+                            <span class="text-[10px] font-mono text-ink-soft tracking-normal">{{ fitnessProgress }}%</span>
+                        </div>
+                        <div class="absolute inset-0 bg-goldc rounded-full flex items-center justify-between px-4 pointer-events-none transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]" :style="{ clipPath: `inset(0 ${100 - fitnessProgress}% 0 0)` }">
+                            <span class="text-[10px] label-jp text-paper">Fitness Progress</span>
+                            <span class="text-[10px] font-mono text-paper tracking-normal">{{ fitnessProgress }}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BOTTOM SECTION -->
+        <div class="flex-1 w-full relative min-h-0">
+
+            <!-- BOTTOM LEFT: Tasks (Full Width Container) -->
+            <div class="glass-panel p-5 sm:p-6 flex flex-col h-full w-full overflow-hidden">
+                <div class="flex items-center justify-between mb-4 flex-shrink-0">
+                    <h2 class="label-jp text-ink tracking-tight flex items-center gap-2.5">
+                        <span>General</span>
+                    </h2>
+                </div>
+
+                <!-- Inner container restricted width so it doesn't overlap clipboard -->
+                <div class="w-full flex-1 overflow-y-auto pr-[380px] xl:pr-[440px] pb-8">
+                    <transition-group name="list" tag="div" class="flex flex-wrap gap-2.5 content-start">
+                        <div v-for="task in todaysDutiesTasks" :key="task.id"
+                             class="relative group ink-card p-3 flex items-center justify-between cursor-pointer w-[calc(50%-0.35rem)] xl:w-[calc(33.333%-0.5rem)] min-w-[120px] overflow-hidden"
+                             :class="[
+                                task.completed ? 'opacity-45 border-transparent' :
+                                (task.progress > 0 ? 'border-indigo/30' : '')
+                             ]"
+                             @click="toggleTask(task)">
+
+                            <!-- Background Progress Fill -->
+                            <div class="absolute inset-y-0 left-0 bg-indigo/10 transition-all duration-500 z-0" :style="{ width: task.progress + '%' }"></div>
+
+                            <!-- Task Name & Status indicator -->
+                            <div class="relative flex items-center gap-2.5 overflow-hidden z-10 w-full">
+                                <div class="w-[6px] h-[6px] flex-shrink-0 transition-colors duration-500"
+                                     :class="task.completed ? 'bg-ink/15' : (task.progress > 0 ? 'bg-indigo animate-pulse' : 'bg-ink/25')"></div>
+                                <span class="text-xs font-medium truncate transition-colors duration-500"
+                                      :class="task.completed ? 'text-ink-faint line-through decoration-ink/20' : 'text-ink'">{{ task.title }}</span>
+                            </div>
+
+                        </div>
+                    </transition-group>
+                </div>
+            </div>
+
+            <!-- BOTTOM RIGHT: Workouts (Floating Vertical Strip / Tanzaku) -->
+            <div class="absolute right-[60px] xl:right-[70px] top-6 bottom-6 w-[300px] xl:w-[350px] bg-transparent border border-ink/15 flex flex-col overflow-hidden z-20">
+
+                <div class="p-5 pt-7 flex flex-col h-full w-full relative z-10">
+                    <div class="mb-4 flex-shrink-0">
+                        <div class="flex items-center justify-between mb-2">
+                            <h2 class="label-jp text-ink tracking-tight flex items-center gap-2">
+                                <span class="font-jp truncate">TODAY'S PLAN</span>
+                                <span class="text-[10px] font-mono text-ink-soft">{{ todaysPlanOverallProgress }}%</span>
+                            </h2>
+                            <button @click="showMissedModal = true" class="text-[10px] font-mono text-ink-faint hover:text-ink px-2 py-1 border border-ink/10 hover:border-ink/25 transition-colors flex items-center gap-1 relative group">
+                                <i class="ph-light ph-warning-circle text-[#b4514a]"></i>
+                                <span v-if="todoWorkouts.length > 0" class="absolute -top-1.5 -right-1.5 bg-[#b4514a] text-paper text-[9px] font-bold h-3.5 w-3.5 flex items-center justify-center">{{ todoWorkouts.length }}</span>
+                            </button>
+                        </div>
+                        <div class="stroke-track h-[3px]">
+                            <div class="stroke-fill bg-indigo" :style="{ width: todaysPlanOverallProgress + '%' }"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto pr-1 pb-4">
+                        <transition name="modal-content" mode="out-in">
+                            <div v-if="firstIncompleteWorkout" class="pb-4" :key="firstIncompleteWorkout.id">
+                                <div class="ink-card p-4 relative group shadow-lg">
+                                    <h3 class="text-[13px] font-medium text-ink mb-3">{{ firstIncompleteWorkout.title }}</h3>
+
+                                    <ul v-if="firstIncompleteWorkout.sub_tasks && firstIncompleteWorkout.sub_tasks.length > 0 && firstIncompleteWorkout.title !== 'Drink Power'" class="space-y-1.5 mb-4">
+                                        <li v-for="exercise in firstIncompleteWorkout.sub_tasks" :key="exercise.id" class="flex items-center gap-2 group/item leading-tight">
+                                            <div class="w-1 h-1 flex-shrink-0 rounded-full bg-indigo/60"></div>
+                                            <span class="text-[11px] font-medium text-ink-soft">{{ exercise.title }}</span>
+                                        </li>
+                                    </ul>
+                                    <button @click="completeFullWorkout(firstIncompleteWorkout)" class="w-full py-2 bg-ink text-paper text-[10px] font-bold tracking-[0.2em] hover:bg-ink-soft active:scale-[0.98] transition-all duration-200 shadow-md">
+                                        COMPLETE TASK
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div v-else-if="allTodaysWorkouts && allTodaysWorkouts.length > 0" class="ink-slot p-5 flex flex-col items-center justify-center text-center h-full" key="complete">
+                                <h3 class="label-jp text-ink-soft">COMPLETE FOR THE DAY</h3>
+                                <p class="text-[11px] text-ink-faint mt-1.5">All tasks finished.</p>
+                            </div>
+
+                            <div v-else class="ink-slot p-5 flex flex-col items-center justify-center text-center h-full" key="rest">
+                                <h3 class="label-jp text-ink-soft">REST</h3>
+                                <p class="text-[11px] text-ink-faint mt-1.5">No scheduling required.</p>
+                            </div>
+                        </transition>
+
+                        <div v-if="tomorrowsWorkout" class="mt-4 border border-ink/8 bg-transparent p-3 relative overflow-hidden opacity-55 pointer-events-none">
+                            <div class="relative z-10">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="text-[9px] label-jp text-ink-faint flex items-center gap-1.5"><i class="ph-light ph-timer"></i> Tomorrow</h4>
+                                    <span class="text-[9px] font-mono text-ink-soft truncate ml-2">{{ tomorrowsWorkout.title }}</span>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5">
+                                    <span v-for="ex in tomorrowsWorkout.sub_tasks.slice(0, 3)" :key="ex.id" class="px-1.5 py-0.5 bg-transparent border border-ink/8 text-[9px] font-mono text-ink-faint">
+                                        {{ ex.title }}
+                                    </span>
+                                    <span v-if="tomorrowsWorkout.sub_tasks.length > 3" class="px-1.5 py-0.5 bg-transparent border border-ink/8 text-[9px] font-mono text-ink-faint">
+                                        +{{ tomorrowsWorkout.sub_tasks.length - 3 }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAR RIGHT: Water Column -->
+            <div class="absolute right-0 top-6 bottom-[85px] w-[40px] xl:w-[50px] bg-transparent border border-ink/15 flex flex-col items-center justify-end overflow-hidden z-20 cursor-pointer group transition-colors duration-500" :class="waterBottleCount >= 3 ? 'pointer-events-none border-goldc/30 bg-goldc/5' : ''" @click="drinkWater" title="Drink Water">
+                <!-- Bottle Count (Top Left) -->
+                <div class="absolute top-2 left-2 text-[10px] font-mono font-bold" :class="waterBottleCount >= 3 ? 'text-goldc' : 'text-ink-soft'">
+                    {{ waterBottleCount >= 3 ? 'MAX' : (waterBottleCount + 1) }}
+                </div>
+
+                <!-- Water fill background (empty track) -->
+                <div class="h-[70%] mb-7 relative overflow-hidden flex flex-col justify-end transition-all duration-700 ease-out rounded-full" :class="waterTrackClass">
+                    <!-- Water fill level -->
+                    <div class="w-full transition-all duration-700 ease-out rounded-full"
+                         :class="waterFillClass"
+                         :style="{ height: waterProgress + '%' }"></div>
+                </div>
+
+                <!-- Percentage Marking -->
+                <div class="absolute bottom-2 w-full text-center text-[9px] font-mono" :class="waterBottleCount >= 3 ? 'text-goldc font-bold' : 'text-ink-faint'">
+                    {{ waterBottleCount >= 3 ? '100%' : waterProgress + '%' }}
+                </div>
+            </div>
+        </div>
+        <!-- Archive Full Screen Page -->
+        <transition name="modal">
+            <div v-if="showArchiveModal" class="fixed inset-0 z-50 bg-paper flex flex-col overflow-hidden">
+                <div class="flex-shrink-0 p-8 sm:p-12 border-b border-ink/10 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-3xl font-light text-ink tracking-tight mb-2 font-jp">Archive</h3>
+                        <p class="text-ink-faint text-sm">Your completed duties.</p>
+                    </div>
+                    <button @click="showArchiveModal = false" class="text-ink-faint hover:text-ink transition-colors p-2"><i class="ph-light ph-x text-2xl"></i></button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-8 sm:p-12 max-w-5xl mx-auto w-full space-y-12">
+                    <div>
+                        <h4 class="text-sm font-medium text-ink mb-4 border-b border-ink/10 pb-2">Completed Tasks</h4>
+                        <div v-if="archivedTasks.length === 0" class="text-ink-faint text-sm text-center py-8">
+                            No completed tasks yet.
+                        </div>
+                        <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                            <div v-for="task in archivedTasks" :key="task.id" class="ink-card p-3 flex items-center justify-between group">
+                                <span class="text-xs font-medium text-ink-soft line-through transition-colors group-hover:text-ink truncate mr-2">{{ task.title }}</span>
+                                <button @click="task.completed = false; task.progress = 0; updateTaskProgress(task, true)" class="flex-shrink-0 px-2 py-1.5 border border-ink/20 text-ink text-[9px] font-bold tracking-[0.1em] hover:bg-ink/5 transition-colors">
+                                    RESTORE
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="archivedShoppingItems.length > 0">
+                        <h4 class="text-sm font-medium text-ink mb-4 border-b border-ink/10 pb-2">Obtained Items</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                            <div v-for="item in archivedShoppingItems" :key="item.id" class="ink-card p-3 flex items-center justify-between group bg-emerald-500/5 border-emerald-500/20">
+                                <span class="text-xs font-medium text-ink-soft line-through transition-colors group-hover:text-ink truncate mr-2">{{ item.name }}</span>
+                                <button @click="restoreShoppingItem(item.id)" class="flex-shrink-0 px-2 py-1.5 border border-emerald-500/20 text-emerald-600 text-[9px] font-bold tracking-[0.1em] hover:bg-emerald-500/10 transition-colors">
+                                    RESTORE
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+
+        <!-- FAB & Modals Overlay -->
+        <transition name="modal">
+            <div v-if="showTaskModal || showMissedModal || showAIModal || showSubTaskModal || showHabitsModal" class="fixed inset-0 z-40 bg-paper/90 backdrop-blur-sm flex items-center justify-center p-4" @click.self="closeAllModals">
+
+                <!-- Expanded Task Detail Modal -->
+                <transition name="modal-content">
+                    <div v-if="showSubTaskModal && selectedTask" class="glass-panel p-6 sm:p-8 w-full max-w-2xl relative max-h-[85vh] flex flex-col shadow-2xl bg-paper">
+                        <button @click="closeAllModals" class="absolute top-6 right-6 text-ink-faint hover:text-ink transition-colors z-10"><i class="ph-light ph-x text-lg"></i></button>
+
+                        <div class="flex-shrink-0 mb-6 pr-8">
+                            <h3 class="text-lg font-medium text-ink tracking-tight flex items-center gap-2.5 mb-2">
+                                <span class="font-jp">{{ selectedTask.title }}</span>
+                            </h3>
+                            <p v-if="selectedTask.description" class="text-ink-faint text-xs leading-relaxed">{{ selectedTask.description }}</p>
+
+                            <div class="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div class="flex-1 w-full">
+                                    <div class="flex justify-between text-[9px] label-jp mb-1.5">
+                                        <span class="text-ink-faint">Progress</span>
+                                        <span class="text-ink-soft font-mono tracking-normal">{{ Math.round(selectedTask.progress) }}%</span>
+                                    </div>
+                                    <div class="stroke-track h-[3px]">
+                                        <div class="stroke-fill bg-indigo" :style="{ width: selectedTask.progress + '%' }"></div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    <button v-if="!selectedTask.completed" @click="selectedTask.completed = true; updateTaskProgress(selectedTask, true)" class="px-3 py-1.5 bg-ink text-paper text-[10px] font-bold tracking-[0.1em] hover:bg-ink-soft transition-colors shadow-sm">
+                                        COMPLETE
+                                    </button>
+                                    <button v-if="selectedTask.completed" @click="selectedTask.completed = false; updateTaskProgress(selectedTask, true)" class="px-3 py-1.5 border border-ink/20 text-ink text-[10px] font-bold tracking-[0.1em] hover:bg-ink/5 transition-colors">
+                                        RESET
+                                    </button>
+                                    
+                                    <button v-if="selectedTask.is_priority" @click="togglePriority(selectedTask)" class="px-3 py-1.5 border border-indigo/30 text-indigo text-[10px] font-bold tracking-[0.1em] hover:bg-indigo/5 transition-colors">
+                                        MOVE TO GENERAL
+                                    </button>
+                                    <button v-else-if="inProgressTasks.length < 4" @click="togglePriority(selectedTask)" class="px-3 py-1.5 border border-ink/20 text-ink text-[10px] font-bold tracking-[0.1em] hover:bg-ink/5 transition-colors">
+                                        MOVE TO PRIORITY
+                                    </button>
+
+                                    <button @click="deleteTask(selectedTask.id); closeAllModals()" class="px-3 py-1.5 border border-[#b4514a]/30 text-[#b4514a] text-[10px] font-bold tracking-[0.1em] hover:bg-[#b4514a]/10 transition-colors">
+                                        RELEASE
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto pr-2 min-h-0 space-y-2">
+                            <h4 class="text-[9px] label-jp text-ink-faint sticky top-0 bg-paper pb-2 z-10">Details ({{ selectedTask.sub_tasks.filter(s => s.completed).length }}/{{ selectedTask.sub_tasks.length }})</h4>
+
+                            <ul class="space-y-2 mt-2">
+                                <li v-for="sub in selectedTask.sub_tasks" :key="sub.id" class="flex items-center group/sub bg-transparent p-2.5 border border-ink/8 hover:border-ink/30 transition-colors duration-200">
+                                    <input type="checkbox" v-model="sub.completed" @change="updateSubTask(selectedTask, sub)" class="mr-3 cyber-checkbox cursor-pointer flex-shrink-0">
+                                    <span class="transition-colors duration-200 flex-1 text-xs font-medium" :class="sub.completed ? 'line-through text-ink-faint' : 'text-ink'">{{ sub.title }}</span>
+                                    <button @click="deleteSubTask(selectedTask, sub.id)" class="ml-2 text-ink-faint hover:text-[#b4514a] opacity-0 group-hover/sub:opacity-100 transition-colors p-1.5 flex-shrink-0"><i class="ph-light ph-x"></i></button>
+                                </li>
+                            </ul>
+
+                            <p v-if="selectedTask.sub_tasks.length === 0" class="text-ink-faint italic text-xs py-4 text-center">Nothing here yet. Add the first step below.</p>
+                        </div>
+
+                        <div class="flex-shrink-0 pt-4 mt-2 border-t border-ink/8">
+                            <form @submit.prevent="addSubTask(selectedTask)" class="flex gap-2">
+                                <input v-model="newSubTaskName[selectedTask.id]" type="text" placeholder="Add a step…" class="border border-ink/20 px-3 py-2.5 focus:outline-none focus:border-ink flex-1 text-xs bg-transparent text-ink transition-colors duration-200 placeholder:text-ink-faint">
+                                <button type="submit" class="bg-ink text-paper font-medium px-4 py-2.5 hover:bg-ink-soft active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5 text-xs">
+                                    Add
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </transition>
+
+                <!-- Add Task Modal -->
+                <transition name="modal-content">
+                    <div v-if="showTaskModal" class="glass-panel p-6 sm:p-8 w-full max-w-md relative bg-paper shadow-2xl">
+                        <button @click="closeAllModals" class="absolute top-6 right-6 text-ink-faint hover:text-ink transition-colors"><i class="ph-light ph-x text-lg"></i></button>
+                        <h3 class="label-jp mb-5 flex items-center gap-2.5">
+                            <span class="text-ink">New Duty</span>
+                        </h3>
+                        <form @submit.prevent="addTask" class="flex flex-col space-y-4">
+                            <input v-model="newTask.title" type="text" placeholder="What needs doing?" class="bg-transparent border border-ink/20 p-3 focus:outline-none focus:border-ink text-ink text-sm transition-colors duration-200 placeholder:text-ink-faint" required>
+                            <textarea v-model="newTask.description" placeholder="Notes (optional)" class="bg-transparent border border-ink/20 p-3 focus:outline-none focus:border-ink text-ink text-xs placeholder:text-ink-faint resize-none h-20 transition-colors duration-200"></textarea>
+
+                            <select v-model="newTask.repeat_interval" class="bg-transparent border border-ink/20 p-3 focus:outline-none focus:border-ink text-ink text-sm transition-colors duration-200 appearance-none">
+                                <option value="">One time</option>
+                                <option value="daily">Repeat daily</option>
+                                <option value="weekly">Repeat weekly</option>
+                            </select>
+
+                            <button type="submit" class="bg-ink text-paper font-medium px-4 py-3 hover:bg-ink-soft active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 mt-2 text-sm">
+                                Begin
+                            </button>
+                        </form>
+                    </div>
+                </transition>
+
+                <!-- Missed Logs Modal -->
+                <transition name="modal-content">
+                    <div v-if="showMissedModal" class="glass-panel p-6 sm:p-8 w-full max-w-md relative bg-paper shadow-2xl">
+                        <button @click="closeAllModals" class="absolute top-6 right-6 text-ink-faint hover:text-ink transition-colors"><i class="ph-light ph-x text-lg"></i></button>
+                        <h3 class="label-jp text-ink mb-5 flex items-center gap-2.5">
+                            <span>Unfinished</span>
+                        </h3>
+
+                        <ul class="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                            <li v-for="todo in todoWorkouts" :key="todo.id" class="flex justify-between items-center group/todo bg-transparent p-3 border border-ink/20 transition-all duration-200 hover:border-ink">
+                                <span class="text-ink font-medium text-xs">{{ todo.exercise_name }}</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[9px] text-ink-faint font-mono">{{ new Date(todo.date_added).toLocaleDateString() }}</span>
+                                    <button @click="completeTodo(todo.id)" class="text-ink-faint hover:text-ink transition-colors p-1" title="Mark resolved">
+                                        <i class="ph-light ph-check text-base"></i>
+                                    </button>
+                                </div>
+                            </li>
+                            <li v-if="todoWorkouts.length === 0" class="text-xs text-ink-faint italic py-2 text-center">All clear. Nothing left behind.</li>
+                        </ul>
+                    </div>
+                </transition>
+
+                <!-- AI Planner Modal -->
+                <transition name="modal-content">
+                    <div v-if="showAIModal" class="glass-panel p-6 sm:p-8 w-full max-w-md relative overflow-hidden bg-paper shadow-2xl">
+                        <button @click="closeAllModals" class="absolute top-6 right-6 text-ink-faint hover:text-ink transition-colors z-10"><i class="ph-light ph-x text-lg"></i></button>
+                        <h3 class="label-jp text-ink mb-5 flex items-center gap-2.5 relative z-10">
+                            <span>Guidance</span>
+                        </h3>
+                        <form @submit.prevent="generateTasksAI" class="flex flex-col space-y-4 relative z-10">
+                            <textarea v-model="aiPrompt" placeholder="Describe your intention… (e.g. train for a marathon)" class="w-full bg-transparent border border-ink/20 p-3 focus:outline-none focus:border-ink text-xs h-28 placeholder:text-ink-faint transition-colors duration-200 resize-none text-ink" required></textarea>
+                            <button type="submit" :disabled="isGeneratingAI" class="bg-ink text-paper font-medium px-4 py-3 hover:bg-ink-soft active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 mt-1 disabled:opacity-40 text-sm">
+                                <i v-if="isGeneratingAI" class="ph-light ph-circle-notch animate-spin-slow"></i>
+                                {{ isGeneratingAI ? 'Contemplating…' : 'Compose Plan' }}
+                            </button>
+                        </form>
+                    </div>
+                </transition>
+
+                <!-- Habits Modal -->
+                <transition name="modal-content">
+                    <div v-if="showHabitsModal" class="glass-panel p-6 sm:p-8 w-full max-w-2xl relative bg-paper shadow-2xl flex flex-col max-h-[85vh]">
+                        <button @click="closeAllModals" class="absolute top-6 right-6 text-ink-faint hover:text-ink transition-colors z-10"><i class="ph-light ph-x text-lg"></i></button>
+                        <div class="flex gap-4 mb-5 border-b border-ink/10 relative z-10">
+                            <button @click="habitsTab = 'habits'" :class="{'text-ink border-b-2 border-ink': habitsTab === 'habits', 'text-ink-faint': habitsTab !== 'habits'}" class="pb-2 text-sm font-medium transition-colors">Habits</button>
+                            <button @click="habitsTab = 'shopping'" :class="{'text-ink border-b-2 border-ink': habitsTab === 'shopping', 'text-ink-faint': habitsTab !== 'shopping'}" class="pb-2 text-sm font-medium transition-colors">Shopping</button>
+                        </div>
+                        
+                        <!-- Habits Tab -->
+                        <template v-if="habitsTab === 'habits'">
+                            <div class="flex-1 overflow-y-auto pr-2 space-y-4 mb-4">
+                                <div v-if="habits.length === 0" class="text-xs text-ink-faint italic py-2 text-center">No habits added yet.</div>
+                                <div v-for="habit in habits" :key="habit.id" class="ink-card p-4 relative group">
+                                    <div class="flex justify-between items-start mb-2 relative z-20">
+                                        <h4 class="text-sm font-medium text-ink">{{ habit.title }}</h4>
+                                        <div class="flex items-center gap-2">
+                                            <span v-if="habit.last_completed_at > todayDateStr" class="text-[9px] font-bold tracking-[0.1em] px-2 py-1 bg-ink/10 text-ink-faint shadow-inner pointer-events-none">FUMBLED TODAY</span>
+                                            <button v-else @click.stop="fumbleHabit(habit)" class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-[9px] font-bold tracking-[0.1em] px-2 py-1 bg-[#b4514a] text-paper shadow-sm active:scale-95">FUMBLED</button>
+                                            <button @click.stop="deleteHabit(habit.id)" class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-ink-faint hover:text-[#b4514a] p-1"><i class="ph-light ph-x"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="relative w-full h-5 bg-ink/5 overflow-hidden mt-3 shadow-inner">
+                                        <div class="absolute inset-0 flex items-center justify-between px-3 pointer-events-none z-10">
+                                            <span class="text-[10px] font-mono mix-blend-difference text-paper">Day {{ habit.streak + 1 }}</span>
+                                        </div>
+                                        <div class="absolute inset-y-0 left-0 bg-indigo transition-all duration-[600ms] shadow-[0_0_12px_rgba(79,70,229,0.3)]" :style="{ width: dayTimeProgress + '%' }"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <form @submit.prevent="addHabit" class="flex gap-2 flex-shrink-0 relative z-10 mt-2 border-t border-ink/8 pt-4">
+                                <input v-model="newHabitTitle" type="text" placeholder="Add a new habit…" class="border border-ink/20 px-3 py-2.5 focus:outline-none focus:border-ink flex-1 text-xs bg-transparent text-ink transition-colors duration-200 placeholder:text-ink-faint" required>
+                                <button type="submit" class="bg-ink text-paper font-medium px-4 py-2.5 hover:bg-ink-soft active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5 text-xs">
+                                    Add
+                                </button>
+                            </form>
+                        </template>
+
+                        <!-- Shopping Tab -->
+                        <template v-if="habitsTab === 'shopping'">
+                            <div class="flex-1 overflow-y-auto pr-2 space-y-4 mb-4">
+                                <div v-if="activeShoppingItems.length === 0" class="text-xs text-ink-faint italic py-2 text-center">No items added yet.</div>
+                                <div v-for="item in activeShoppingItems" :key="item.id" class="ink-card p-4 relative group">
+                                    <div class="flex justify-between items-center relative z-20">
+                                        <h4 class="text-sm font-medium text-ink flex items-center gap-2">
+                                            {{ item.name }}
+                                            <span class="text-[9px] font-mono px-1.5 py-0.5 bg-ink/5 text-ink-faint rounded">Lvl {{ item.level }}</span>
+                                        </h4>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[9px] font-mono text-ink-faint mr-2">{{ item.points_required }} PTS</span>
+                                            <button @click.stop="completeShoppingItem(item.id)" class="text-[9px] font-bold tracking-[0.1em] px-3 py-1.5 bg-ink text-paper shadow-sm hover:bg-ink-soft active:scale-95 transition-all">BUY / COMPLETE</button>
+                                            <button @click.stop="deleteShoppingItem(item.id)" class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-ink-faint hover:text-[#b4514a] p-1"><i class="ph-light ph-x"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <form @submit.prevent="addShoppingItem" class="flex gap-2 flex-shrink-0 relative z-10 mt-2 border-t border-ink/8 pt-4">
+                                <input v-model="newShoppingName" type="text" placeholder="Add an item…" class="border border-ink/20 px-3 py-2.5 focus:outline-none focus:border-ink flex-1 text-xs bg-transparent text-ink transition-colors duration-200 placeholder:text-ink-faint" required>
+                                <input v-model="newShoppingLevel" type="number" min="1" max="10" placeholder="Lvl (1-10)" class="border border-ink/20 w-20 px-3 py-2.5 focus:outline-none focus:border-ink text-xs bg-transparent text-ink transition-colors duration-200 placeholder:text-ink-faint" required>
+                                <button type="submit" class="bg-ink text-paper font-medium px-4 py-2.5 hover:bg-ink-soft active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5 text-xs">
+                                    Add
+                                </button>
+                            </form>
+                        </template>
+                    </div>
+                </transition>
+
+            </div>
+        </transition>
+
+        <!-- FAB Main -->
+        <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 pointer-events-none">
+            <!-- Speed Dial Menu -->
+            <div v-show="showFABMenu" class="flex flex-col items-end gap-3 mb-1 origin-bottom transition-all pointer-events-auto">
+                <button @click="showAIModal = true; showFABMenu = false" class="flex items-center gap-2 group">
+                    <span class="bg-ink text-paper text-[10px] px-2 py-1 font-mono uppercase shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 translate-x-1 group-hover:translate-x-0">Guidance</span>
+                    <div class="w-10 h-10 border border-ink bg-paper text-ink flex items-center justify-center hover:bg-ink hover:text-paper active:scale-95 transition-all duration-200">
+                        <i class="ph-light ph-sparkle text-lg"></i>
+                    </div>
+                </button>
+                <button @click="showTaskModal = true; showFABMenu = false" class="flex items-center gap-2 group">
+                    <span class="bg-ink text-paper text-[10px] px-2 py-1 font-mono uppercase shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 translate-x-1 group-hover:translate-x-0">New Duty</span>
+                    <div class="w-10 h-10 border border-ink bg-paper text-ink flex items-center justify-center hover:bg-ink hover:text-paper active:scale-95 transition-all duration-200">
+                        <i class="ph-light ph-feather text-lg"></i>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Primary FAB Toggle -->
+            <button @click="showFABMenu = !showFABMenu" class="w-12 h-12 bg-ink text-paper flex items-center justify-center hover:bg-ink-soft active:scale-95 transition-all duration-200 pointer-events-auto shadow-2xl">
+                <i class="ph-light ph-plus text-xl transition-transform duration-200" :class="showFABMenu ? 'rotate-45' : ''"></i>
+            </button>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

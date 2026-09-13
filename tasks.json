@@ -1,0 +1,304 @@
+[
+  {
+    "completed": 0,
+    "description": "",
+    "id": 5,
+    "last_completed_at": null,
+    "parent_id": null,
+    "progress": 0.0,
+    "repeat_interval": "weekly",
+    "sub_tasks": [
+      {
+        "completed": 0,
+        "description": "",
+        "id": 6,
+        "last_completed_at": null,
+        "parent_id": 5,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Bulgarian Split Squats 5x5/leg"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 7,
+        "last_completed_at": null,
+        "parent_id": 5,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Romanian Deadlift 4x8-10"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 8,
+        "last_completed_at": null,
+        "parent_id": 5,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Single-Leg Calf Raises 4x15/leg"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 9,
+        "last_completed_at": null,
+        "parent_id": 5,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Weighted Pull-Ups 3x5"
+      }
+    ],
+    "title": "Monday Workout"
+  },
+  {
+    "completed": 0,
+    "description": "",
+    "id": 10,
+    "last_completed_at": null,
+    "parent_id": null,
+    "progress": 0.0,
+    "repeat_interval": "weekly",
+    "sub_tasks": [
+      {
+        "completed": 0,
+        "description": "",
+        "id": 11,
+        "last_completed_at": null,
+        "parent_id": 10,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Barbell Bench Press 5x5"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 12,
+        "last_completed_at": null,
+        "parent_id": 10,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Bent-Over Barbell Row 4x8"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 13,
+        "last_completed_at": null,
+        "parent_id": 10,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Walking Lunges 3x20 steps"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 14,
+        "last_completed_at": null,
+        "parent_id": 10,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Face Pulls 3x15-20"
+      }
+    ],
+    "title": "Tuesday workout"
+  },
+  {
+    "completed": 0,
+    "description": "",
+    "id": 15,
+    "last_completed_at": null,
+    "parent_id": null,
+    "progress": 0.0,
+    "repeat_interval": "weekly",
+    "sub_tasks": [
+      {
+        "completed": 0,
+        "description": "",
+        "id": 16,
+        "last_completed_at": null,
+        "parent_id": 15,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Isometric Split Squat Holds 4x30-45s/leg"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 17,
+        "last_completed_at": null,
+        "parent_id": 15,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Standing OHP 4x8"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 18,
+        "last_completed_at": null,
+        "parent_id": 15,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Hanging Leg Raises 4x12"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 19,
+        "last_completed_at": null,
+        "parent_id": 15,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Mobility Flow 20min"
+      }
+    ],
+    "title": "Wednesday workout"
+  },
+  {
+    "completed": 0,
+    "description": "",
+    "id": 20,
+    "last_completed_at": null,
+    "parent_id": null,
+    "progress": 0.0,
+    "repeat_interval": "weekly",
+    "sub_tasks": [
+      {
+        "completed": 0,
+        "description": "",
+        "id": 21,
+        "last_completed_at": null,
+        "parent_id": 20,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Goblet Squats (heels elevated) 4x12-15"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 22,
+        "last_completed_at": null,
+        "parent_id": 20,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Single-Leg RDL 3x10/leg"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 23,
+        "last_completed_at": null,
+        "parent_id": 20,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "ATG Split Squat 3x10/leg"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 24,
+        "last_completed_at": null,
+        "parent_id": 20,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Jump Squats 3x10"
+      }
+    ],
+    "title": "Thursday GYM"
+  },
+  {
+    "completed": 0,
+    "description": "",
+    "id": 25,
+    "last_completed_at": null,
+    "parent_id": null,
+    "progress": 0.0,
+    "repeat_interval": "weekly",
+    "sub_tasks": [
+      {
+        "completed": 0,
+        "description": "",
+        "id": 26,
+        "last_completed_at": null,
+        "parent_id": 25,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Incline DB Bench 4x10"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 27,
+        "last_completed_at": null,
+        "parent_id": 25,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Arm Farm Superset (BB/DB Curls 4x12)"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 28,
+        "last_completed_at": null,
+        "parent_id": 25,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Overhead Tricep Extensions 4x12"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 29,
+        "last_completed_at": null,
+        "parent_id": 25,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "Plyometric Lunges 4x20sec"
+      }
+    ],
+    "title": "Friday Workout"
+  },
+  {
+    "completed": 0,
+    "description": "",
+    "id": 30,
+    "last_completed_at": null,
+    "parent_id": null,
+    "progress": 0.0,
+    "repeat_interval": null,
+    "sub_tasks": [
+      {
+        "completed": 0,
+        "description": "",
+        "id": 31,
+        "last_completed_at": null,
+        "parent_id": 30,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "daily workout"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 32,
+        "last_completed_at": null,
+        "parent_id": 30,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "drink power"
+      },
+      {
+        "completed": 0,
+        "description": "",
+        "id": 33,
+        "last_completed_at": null,
+        "parent_id": 30,
+        "progress": 0.0,
+        "repeat_interval": null,
+        "title": "drink power"
+      }
+    ],
+    "title": "Daily Protocol 2026-09-12"
+  }
+]

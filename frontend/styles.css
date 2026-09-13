@@ -1,0 +1,196 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+    --bg: #ffffff;
+    --text-main: #111111;
+    --text-muted: #888888;
+    --line: #ebebeb;
+    --line-hover: #cccccc;
+    
+    --accent-blue: #0055ff;
+    --accent-gold: #e5b500;
+    --accent-red: #ff3333;
+    --accent-green: #00b359;
+}
+
+* { 
+    -webkit-tap-highlight-color: transparent; 
+    box-sizing: border-box;
+}
+
+html { 
+    scroll-behavior: smooth; 
+}
+
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text-main);
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.font-mono { 
+    font-family: 'JetBrains Mono', monospace; 
+}
+
+/* ============================================================
+   BACKGROUND SCENE — Removed for minimalism
+   ============================================================ */
+.scene {
+    display: none;
+}
+
+/* ============================================================
+   PANELS & STRUCTURE — No backgrounds, just layout
+   ============================================================ */
+.glass-panel {
+    position: relative;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 0;
+}
+
+.glass-panel:hover {
+    border-color: var(--line-hover);
+}
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+.label-jp {
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.hanko, .seal {
+    display: inline-block;
+    padding: 2px 6px;
+    border: 1px solid var(--text-main);
+    color: var(--text-main);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    border-radius: 0;
+    background: transparent;
+    letter-spacing: 0.05em;
+}
+
+/* ============================================================
+   PROGRESS BARS — Sharp structural lines
+   ============================================================ */
+.stroke-track {
+    width: 100%;
+    background: var(--line);
+    border-radius: 9999px;
+    overflow: hidden;
+}
+.stroke-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ============================================================
+   CARDS / ROWS — Wireframe look
+   ============================================================ */
+.ink-card {
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 0;
+    transition: border-color 0.2s ease;
+}
+.ink-card:hover {
+    border-color: var(--text-main);
+}
+
+.ink-slot {
+    border: 1px dashed var(--line);
+    border-radius: 0;
+    background: transparent;
+    transition: border-color 0.2s ease;
+}
+.ink-slot:hover {
+    border-color: var(--text-main);
+}
+
+/* ============================================================
+   CHECKBOX — Minimalist square
+   ============================================================ */
+.cyber-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--line-hover);
+    background: transparent;
+    position: relative;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    border-radius: 0;
+}
+.cyber-checkbox:hover { 
+    border-color: var(--text-main); 
+}
+.cyber-checkbox:checked {
+    border-color: var(--text-main);
+    background: var(--text-main);
+}
+.cyber-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px; top: 2px;
+    width: 4px; height: 7px;
+    border: solid var(--bg);
+    border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg);
+}
+.cyber-checkbox.emerald:checked {
+    border-color: var(--accent-green);
+    background: var(--accent-green);
+}
+
+/* ============================================================
+   SCROLLBARS — Invisible until hover
+   ============================================================ */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: transparent;
+}
+*:hover::-webkit-scrollbar-thumb {
+    background: var(--line-hover);
+}
+::-webkit-scrollbar-thumb:hover { 
+    background: var(--text-muted); 
+}
+
+/* ============================================================
+   VUE TRANSITIONS — Fast, snappy
+   ============================================================ */
+.list-move,
+.list-enter-active,
+.list-leave-active {
+    transition: all 0.3s ease;
+}
+.list-enter-from { opacity: 0; transform: translateY(4px); }
+.list-leave-to   { opacity: 0; transform: scale(0.98); }
+
+.modal-enter-active,
+.modal-leave-active { transition: opacity 0.2s ease; }
+.modal-enter-from,
+.modal-leave-to { opacity: 0; }
+
+.modal-content-enter-active { transition: all 0.3s ease; }
+.modal-content-leave-active { transition: all 0.2s ease; }
+.modal-content-enter-from { opacity: 0; transform: translateY(10px); }
+.modal-content-leave-to   { opacity: 0; transform: translateY(-4px); }
+
+.animate-spin-slow { animation: spin 4s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
