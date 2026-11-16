@@ -1,0 +1,12 @@
+#!/bin/bash
+set -euo pipefail
+root=$(cd -- "$(dirname -- "$0")" && pwd)
+installed="$HOME/Applications/Goofy Mendeleev.app/Contents/MacOS/Goofy Mendeleev"
+if [[ -x "$installed" ]] && [[ $(/usr/bin/plutil -extract CFBundleVersion raw "${installed%/MacOS/*}/Info.plist" 2>/dev/null) -ge 3 ]]; then
+    exec "$installed" --cli "$@"
+fi
+cd "$root"
+./scripts/setup-local.sh --python-only
+export PYTHONPATH="$root/.build/vendor"
+export PYTHONDONTWRITEBYTECODE=1
+exec "$(cat .build/python-path)" -m backend.cli "$@"

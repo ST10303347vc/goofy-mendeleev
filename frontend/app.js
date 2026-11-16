@@ -1,52 +1,57 @@
 const { createApp } = Vue
+const clockFormat = new Intl.DateTimeFormat('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const dateFormat = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
 createApp({
     data() {
         return {
+            usesNativeTheme: Boolean(window.goofyNativeTheme),
+            browserTheme: document.documentElement.dataset.theme,
             currentTime: '',
             currentDate: '',
             todoWorkouts: [],
+            training: { day: null, today: [], tomorrow: null },
+            trainingPending: null,
             tasks: [],
             
             selectedTask: null,
-            showSubTaskModal: false,
-            showArchiveModal: false,
+            modal: null,
+            modalTrigger: null,
             
             newTask: { title: '', description: '', repeat_interval: '' },
             newSubTaskName: {}, // task_id -> title
             
-            showTaskModal: false,
-            showRoutineModal: false,
-            showAIModal: false,
-            showMissedModal: false,
-            showFABMenu: false,
             
             workoutsCompletedThisWeek: 0,
             yearlyWorkouts: 0,
             taskPoints: 0,
             totalWaterDays: 0,
             
-            aiPrompt: '',
-            isGeneratingAI: false,
 
-            waterProgress: 0,
-            waterBottleCount: 0,
+            water: null,
+            waterTapQueue: null,
             
             habits: [],
             shoppingItems: [],
             habitsTab: 'habits', // 'habits' or 'shopping'
             newShoppingName: '',
             newShoppingLevel: 1,
-            showHabitsModal: false,
             newHabitTitle: '',
+            newHabitKind: 'build',
+            pendingHabit: null,
+            reflection: '',
+            reflectionSaved: false,
+            reflectionLoaded: false,
             todayDateStr: '',
             dayTimeProgress: 0,
             clockInterval: null,
+            dashboardPending: null,
+            clockMinute: 0,
         }
     },
     computed: {
         yearProgress() {
-            const now = new Date();
+            const now = new Date(this.clockMinute * 60_000);
             const start = new Date(now.getFullYear(), 0, 1);
             const end = new Date(now.getFullYear() + 1, 0, 1);
             const percent = ((now - start) / (end - start)) * 100;
@@ -69,92 +74,15 @@ createApp({
             const p = (this.yearlyWorkouts / 189) * 100;
             return Math.min(p, 100).toFixed(1);
         },
-        // Removed userXPProgress, adding workout isolation
         allTodaysWorkouts() {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const todayStr = `${year}-${month}-${day}`;
-            
-            const protocolTitle = `Daily Protocol ${todayStr}`;
-            const protocol = this.tasks.find(t => t.title === protocolTitle);
-            
-            const todayName = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-            const specificWorkout = this.tasks.find(t => this.isWorkoutForDay(t, todayName));
-
-            const workouts = [];
-            
-            if (protocol) {
-                let p_subs = protocol.sub_tasks || [];
-                let morningExercises = [];
-                let powers = [];
-                p_subs.forEach(st => {
-                    if (st.title.toLowerCase() === 'drink power') {
-                        powers.push(st);
-                    } else {
-                        morningExercises.push(st);
-                    }
-                });
-
-                if (morningExercises.length > 0) {
-                    workouts.push({
-                        id: 'virtual-morning',
-                        isVirtualChild: true,
-                        parentProtocol: protocol,
-                        title: 'Morning Workout',
-                        sub_tasks: morningExercises,
-                        completed: morningExercises.every(st => Number(st.completed) === 1 || st.completed === true),
-                        progress: Math.round((morningExercises.filter(st => Number(st.completed) === 1 || st.completed === true).length / morningExercises.length) * 100)
-                    });
-                }
-
-                if (powers[0]) {
-                    workouts.push({
-                        id: 'virtual-power-1',
-                        isVirtualChild: true,
-                        parentProtocol: protocol,
-                        title: 'Drink Power',
-                        sub_tasks: [powers[0]],
-                        completed: Number(powers[0].completed) === 1 || powers[0].completed === true,
-                        progress: (Number(powers[0].completed) === 1 || powers[0].completed === true) ? 100 : 0
-                    });
-                }
-
-                if (specificWorkout) workouts.push(specificWorkout);
-
-                if (powers[1]) {
-                    workouts.push({
-                        id: 'virtual-power-2',
-                        isVirtualChild: true,
-                        parentProtocol: protocol,
-                        title: 'Drink Power',
-                        sub_tasks: [powers[1]],
-                        completed: Number(powers[1].completed) === 1 || powers[1].completed === true,
-                        progress: (Number(powers[1].completed) === 1 || powers[1].completed === true) ? 100 : 0
-                    });
-                }
-            } else if (specificWorkout) {
-                workouts.push(specificWorkout);
-            }
-            
-            return workouts;
-        },
-        // todaysWorkouts removed — use allTodaysWorkouts directly
-        firstIncompleteWorkout() {
-            return this.allTodaysWorkouts.find(w => Number(w.completed) !== 1 && w.completed !== true);
+            const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+            const custom = this.tasks.filter(task => this.isWorkoutForDay(task, todayName));
+            return [...this.training.today, ...custom];
         },
         todaysPlanOverallProgress() {
-            const workouts = this.allTodaysWorkouts;
-            if (workouts.length === 0) return 0;
-            const completed = workouts.filter(w => Number(w.completed) === 1 || w.completed === true).length;
-            return Math.round((completed / workouts.length) * 100);
-        },
-        tomorrowsWorkout() {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowName = tomorrow.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-            return this.tasks.find(t => this.isWorkoutForDay(t, tomorrowName));
+            const required = this.allTodaysWorkouts.filter(workout => !workout.optional);
+            if (!required.length) return 0;
+            return Math.round(required.filter(workout => workout.completed).length / required.length * 100);
         },
         regularTasks() {
             const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -164,17 +92,39 @@ createApp({
                 return !isWorkout && !isProtocol;
             });
         },
+        waterBottleCount() {
+            return this.water?.count ?? 0;
+        },
+        waterAtBest() {
+            return this.water?.next_tier === null;
+        },
+        waterProgress() {
+            if (this.waterAtBest) return 100;
+            return this.water ? Math.round(this.water.partial_ml / this.water.bottle_ml * 100) : 0;
+        },
+        waterAmount() {
+            return this.formatWaterAmount(this.water?.total_ml ?? 0);
+        },
+        waterSummary() {
+            const parts = [`${this.waterAmount} logged`];
+            if (this.water?.tier) parts.push(this.water.tier);
+            if (this.water?.next_tier) {
+                const next = this.water.next_tier;
+                parts.push(`Next tier: ${next.name} at ${this.formatWaterAmount(next.total_ml)}`);
+            }
+            return parts.join(' · ');
+        },
         waterTrackClass() {
             if (this.waterBottleCount === 0) return 'w-1.5 bg-ink/5 border border-ink/10';
-            if (this.waterBottleCount === 1) return 'w-3 bg-indigo/10 border border-indigo/30 shadow-[0_0_12px_rgba(79,70,229,0.3)] animate-pulse';
-            if (this.waterBottleCount === 2) return 'w-5 bg-goldc/10 border border-goldc/40 shadow-[0_0_25px_rgba(229,181,0,0.4)] animate-pulse';
-            return 'w-6 bg-goldc/20 shadow-[0_0_30px_rgba(229,181,0,0.6)] border border-goldc/60';
+            if (this.waterBottleCount === 1) return 'w-3 bg-indigo/10 border border-indigo/30 water-indigo-glow';
+            if (this.waterBottleCount === 2) return 'w-5 bg-goldc/10 border border-goldc/40 water-gold-glow';
+            return 'w-6 bg-goldc/20 border border-goldc/60 water-peak-glow';
         },
         waterFillClass() {
-            if (this.waterBottleCount === 0) return 'bg-blue-400';
-            if (this.waterBottleCount === 1) return 'bg-indigo shadow-[0_0_20px_rgba(79,70,229,0.9)] brightness-110';
-            if (this.waterBottleCount === 2) return 'bg-goldc shadow-[0_0_30px_rgba(229,181,0,1)] brightness-125';
-            return 'bg-white shadow-[0_0_40px_rgba(255,255,255,1)]';
+            if (this.waterBottleCount === 0) return 'bg-water';
+            if (this.waterBottleCount === 1) return 'bg-indigo water-indigo-glow';
+            if (this.waterBottleCount === 2) return 'bg-goldc water-gold-glow';
+            return 'bg-goldc water-peak-glow';
         },
         inProgressTasks() {
             return this.regularTasks
@@ -197,85 +147,119 @@ createApp({
         }
     },
     mounted() {
-        this.updateClock();
-        this.clockInterval = setInterval(this.updateClock, 1000);
-        this.fetchTodoWorkouts();
-        this.fetchTasks();
-        this.fetchStats();
-        this.loadWater();
-        this.fetchHabits();
-        this.fetchShoppingItems();
+        window.goofyReloadTasks = async () => { await this.fetchTasks(); await this.fetchStats(); };
+        this.syncClock();
+        this.refreshDashboard();
+        document.addEventListener('visibilitychange', this.syncClock);
+        document.addEventListener('keydown', this.onEscape);
     },
     beforeUnmount() {
-        if (this.clockInterval) {
-            clearInterval(this.clockInterval);
-            this.clockInterval = null;
-        }
+        clearInterval(this.clockInterval);
+        document.removeEventListener('visibilitychange', this.syncClock);
+        document.removeEventListener('keydown', this.onEscape);
+        delete window.goofyReloadTasks;
     },
     methods: {
+        setBrowserTheme(value) {
+            this.browserTheme = value === 'dark' ? 'dark' : 'light';
+            document.documentElement.dataset.theme = this.browserTheme;
+            try { localStorage.setItem('goofy-theme', this.browserTheme); } catch {}
+        },
+        onEscape(event) {
+            if (event.key !== 'Escape' || !this.modal || event.defaultPrevented) return;
+            event.preventDefault();
+            this.closeModal();
+        },
+        syncClock() {
+            clearInterval(this.clockInterval);
+            this.clockInterval = null;
+            if (document.hidden) return;
+            this.updateClock();
+            this.clockInterval = setInterval(this.updateClock, 1000);
+        },
+        refreshDashboard() {
+            if (this.dashboardPending) return this.dashboardPending;
+            this.dashboardPending = this.apiCall('/api/dashboard').then(data => {
+                this.tasks = data.tasks;
+                this.todoWorkouts = data.todo_workouts;
+                this.training = data.training ?? this.training;
+                this.applyStats(data.stats);
+                this.applyWater(data.water);
+                this.habits = data.habits;
+                this.shoppingItems = data.shopping_items;
+            }).catch(() => {
+                // apiCall already displays the original error alert.
+            }).finally(() => { this.dashboardPending = null; });
+            return this.dashboardPending;
+        },
         async fetchHabits() {
             this.habits = await this.apiCall('/api/habits') || [];
         },
         async addHabit() {
             if (!this.newHabitTitle.trim()) return;
-            await this.apiCall('/api/habits', 'POST', { title: this.newHabitTitle });
+            await this.apiCall('/api/habits', 'POST', { title: this.newHabitTitle, kind: this.newHabitKind });
             this.newHabitTitle = '';
             this.fetchHabits();
+        },
+        async checkInHabit(habit) {
+            if (this.pendingHabit !== null) return;
+            this.pendingHabit = habit.id;
+            try {
+                const updated = await this.apiCall(`/api/habits/${habit.id}/check-in`, 'PUT', { checked: !habit.checked_today });
+                Object.assign(habit, updated);
+            } finally { this.pendingHabit = null; }
+        },
+        async openReview(event) {
+            this.openModal('review', event);
+            this.reflectionSaved = false;
+            this.reflectionLoaded = false;
+            const record = await this.apiCall('/api/reflection');
+            this.reflection = record.note;
+            this.reflectionLoaded = true;
+        },
+        async saveReflection() {
+            if (!this.reflectionLoaded) return;
+            await this.apiCall('/api/reflection', 'PUT', { note: this.reflection });
+            this.reflectionSaved = true;
         },
         async deleteHabit(habitId) {
             await this.apiCall(`/api/habits/${habitId}`, 'DELETE');
             this.fetchHabits();
         },
-        async fumbleHabit(habit) {
+        async logLapse(habit) {
+            if (this.pendingHabit !== null) return;
+            this.pendingHabit = habit.id;
             try {
                 const updated = await this.apiCall(`/api/habits/${habit.id}/fumble`, 'POST');
-                // The server is the source of truth: it stores streak -1 with
-                // last_completed_at = today, which auto-advances to Day 1
-                // on the next day's fetch (streak 0).
-                if (updated && typeof updated.streak === 'number') {
-                    habit.streak = updated.streak;
-                    habit.last_completed_at = updated.last_completed_at;
-                }
-                await this.fetchHabits();
+                Object.assign(habit, updated);
                 await this.fetchStats();
-            } catch (e) {
-                console.error("Fumble error:", e);
+            } finally {
+                this.pendingHabit = null;
             }
         },
-        async loadWater() {
-            try {
-                const res = await fetch('/api/water/today');
-                const data = await res.json();
-                const count = data.count || 0;
-                this.waterBottleCount = Math.min(count, 3);
-                this.waterProgress = count >= 3 ? 100 : 0;
-            } catch (e) {
-                this.waterBottleCount = 0;
-                this.waterProgress = 0;
-            }
+        formatWaterAmount(ml) {
+            return `${Number((ml / 1000).toFixed(2))} L`;
+        },
+        applyWater(next) {
+            if (!next || (this.water && (next.date < this.water.date ||
+                (next.date === this.water.date && next.total_ml < this.water.total_ml)))) return;
+            this.water = next;
         },
         async drinkWater() {
-            if (this.waterBottleCount >= 3) return;
-            
-            if (this.waterProgress < 100) {
-                this.waterProgress += 10;
-                
-                if (this.waterProgress >= 100) {
-                    this.waterProgress = 100;
-                    
-                    try {
-                        await this.apiCall('/api/water/drink', 'POST');
-                        await this.fetchStats();
-                    } catch (e) {}
-
-                    setTimeout(() => {
-                        this.waterBottleCount += 1;
-                        if (this.waterBottleCount < 3) {
-                            this.waterProgress = 0;
-                        }
-                    }, 500);
-                }
-            }
+            if (this.waterAtBest) return;
+            const previous = this.waterTapQueue ?? Promise.resolve();
+            const tap = previous.then(async () => {
+                await this.dashboardPending;
+                if (this.waterAtBest) return;
+                const result = await this.apiCall('/api/water/tap', 'POST');
+                this.applyWater(result);
+                if (result.points_awarded) await this.fetchStats();
+            }).catch(() => {
+                // The API helper already showed the error. Leave the saved fill unchanged.
+            });
+            this.waterTapQueue = tap;
+            await tap;
+            if (this.waterTapQueue === tap) this.waterTapQueue = null;
         },
         async fetchShoppingItems() {
             this.shoppingItems = await this.apiCall('/api/shopping') || [];
@@ -305,8 +289,11 @@ createApp({
         },
         updateClock() {
             const now = new Date();
-            this.currentTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
-            this.currentDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+            this.currentTime = clockFormat.format(now);
+            const minute = Math.floor(now.getTime() / 60_000);
+            if (minute === this.clockMinute) return;
+            this.clockMinute = minute;
+            this.currentDate = dateFormat.format(now);
             
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -314,12 +301,7 @@ createApp({
             const newDateStr = `${year}-${month}-${day}`;
             
             if (this.todayDateStr && this.todayDateStr !== newDateStr) {
-                // Day changed, refresh data
-                this.fetchTodoWorkouts();
-                this.fetchTasks();
-                this.fetchStats();
-                this.loadWater();
-                this.fetchHabits();
+                this.refreshDashboard();
             }
             this.todayDateStr = newDateStr;
             
@@ -350,60 +332,61 @@ createApp({
         },
 
         isWorkoutForDay(task, dayName) {
-            const lower = task.title.toLowerCase();
+            const lower = (task.title || '').toLowerCase();
             return lower.includes(dayName) && (lower.includes('workout') || lower.includes('gym'));
         },
 
-        closeAllModals() {
-            this.showTaskModal = false;
-            this.showRoutineModal = false;
-            this.showAIModal = false;
-            this.showMissedModal = false;
-            this.showFABMenu = false;
-            this.showSubTaskModal = false;
-            this.showArchiveModal = false;
-            this.showHabitsModal = false;
+        openModal(name, event) {
+            this.modalTrigger = event?.currentTarget ?? document.activeElement;
+            this.modal = name;
+            this.$nextTick(() => this.$refs.closeButton?.focus());
+        },
+
+        closeModal() {
+            if (!this.modal) return;
+            const trigger = this.modalTrigger;
+            this.modal = null;
+            this.modalTrigger = null;
             this.selectedTask = null;
+            this.$nextTick(() => { if (!this.modal) trigger?.focus(); });
         },
 
         async completeFullWorkout(workout) {
-            if (workout.sub_tasks && workout.sub_tasks.length > 0) {
-                workout.sub_tasks.forEach(st => st.completed = true);
-                await Promise.all(workout.sub_tasks.map(st => 
-                    this.apiCall(`/api/tasks/${st.id}`, 'PUT', st)
-                ));
-                
-                if (workout.isVirtualChild) {
-                    await this.recalculateParentProgress(workout.parentProtocol);
-                } else {
+            if (workout.completed || this.trainingPending !== null) return;
+            this.trainingPending = workout.slot || workout.id;
+            try {
+                if (workout.slot) {
+                    const result = await this.apiCall(`/api/training/${this.training.day}/${workout.slot}/complete`, 'PUT');
+                    this.training = result.training;
+                    this.applyStats(result.stats);
+                    return;
+                }
+                if (workout.sub_tasks?.length) {
+                    for (const step of workout.sub_tasks) {
+                        await this.apiCall(`/api/tasks/${step.id}`, 'PUT', { completed: true });
+                        step.completed = true;
+                    }
                     await this.recalculateParentProgress(workout);
+                } else {
+                    await this.apiCall(`/api/tasks/${workout.id}`, 'PUT', { completed: true, progress: 100 });
+                    workout.completed = true;
+                    workout.progress = 100;
+                    await this.incrementWorkoutStat();
                 }
-            } else {
-                const wasCompleted = workout.completed;
-                workout.completed = true;
-                workout.progress = 100;
-                await this.apiCall(`/api/tasks/${workout.id}`, 'PUT', workout);
-                
-                const isDailyProtocol = workout.title && workout.title.startsWith("Daily Protocol");
-                const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-                const isSpecificWorkout = workout.title && this.isWorkoutForDay(workout, todayName);
-
-                if (!wasCompleted && (isSpecificWorkout || isDailyProtocol)) {
-                    this.incrementWorkoutStat();
-                }
+            } finally {
+                this.trainingPending = null;
             }
-            await this.fetchStats();
+        },
+        applyStats(stats) {
+            this.workoutsCompletedThisWeek = stats.weekly_workouts;
+            this.yearlyWorkouts = stats.yearly_workouts || 0;
+            this.taskPoints = stats.task_points || 0;
+            this.totalWaterDays = stats.total_water_days || 0;
         },
         async fetchStats() {
-            const res = await this.apiCall('/api/stats');
-            if (res) {
-                this.workoutsCompletedThisWeek = res.weekly_workouts;
-                this.yearlyWorkouts = res.yearly_workouts || 0;
-                this.taskPoints = res.task_points || 0;
-                this.totalWaterDays = res.total_water_days || 0;
-            }
+            this.applyStats(await this.apiCall('/api/stats'));
         },
-        
+
         async incrementWorkoutStat() {
             const res = await this.apiCall('/api/stats/increment_workout', 'POST');
             if (res) {
@@ -436,7 +419,7 @@ createApp({
             this.newTask.description = '';
             this.newTask.repeat_interval = '';
             this.fetchTasks();
-            this.closeAllModals();
+            if (this.modal === 'task') this.closeModal();
         },
         async updateTaskProgress(task, isCheckboxTriggered) {
             if (isCheckboxTriggered) {
@@ -477,21 +460,20 @@ createApp({
             
             await this.apiCall(`/api/tasks/${parentTask.id}`, 'PUT', parentTask);
             
-            const isDailyProtocol = parentTask.title && parentTask.title.startsWith("Daily Protocol");
             const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
             const isSpecificWorkout = parentTask.title && this.isWorkoutForDay(parentTask, todayName);
 
-            if (parentTask.completed && !wasCompleted && (isSpecificWorkout || isDailyProtocol)) {
-                this.incrementWorkoutStat();
+            if (parentTask.completed && !wasCompleted && isSpecificWorkout) {
+                await this.incrementWorkoutStat();
             }
         },
         async deleteTask(id) {
             await this.apiCall(`/api/tasks/${id}`, 'DELETE');
             this.fetchTasks();
         },
-        toggleTask(task) {
+        toggleTask(task, event) {
             this.selectedTask = task;
-            this.showSubTaskModal = true;
+            this.openModal('detail', event);
         },
         async togglePriority(task) {
             task.is_priority = task.is_priority ? 0 : 1;
@@ -520,36 +502,6 @@ createApp({
             this.newSubTaskName[parentTask.id] = '';
             
             this.recalculateParentProgress(parentTask);
-        },
-
-        // --- AI ---
-        async generateTasksAI() {
-            if (!this.aiPrompt.trim()) return;
-
-            this.isGeneratingAI = true;
-            try {
-                const result = await this.apiCall('/api/generate_tasks', 'POST', {
-                    prompt: this.aiPrompt
-                });
-                
-                if (result) {
-                    this.aiPrompt = '';
-                    if (result.tasks && result.tasks.length > 0) {
-                        await this.fetchTasks();
-                    }
-                    if (result.habits && result.habits.length > 0) {
-                        await this.fetchHabits();
-                    }
-                    if (result.shopping_items && result.shopping_items.length > 0) {
-                        await this.fetchShoppingItems();
-                    }
-                    this.closeAllModals();
-                }
-            } catch (err) {
-                console.error("AI Generation failed", err);
-            } finally {
-                this.isGeneratingAI = false;
-            }
         }
     }
 }).mount('#app')

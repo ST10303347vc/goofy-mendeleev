@@ -1,16 +1,46 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url("assets/fonts.css");
 
 :root {
-    --bg: #ffffff;
-    --text-main: #111111;
-    --text-muted: #888888;
-    --line: #ebebeb;
-    --line-hover: #cccccc;
-    
-    --accent-blue: #0055ff;
-    --accent-gold: #e5b500;
-    --accent-red: #ff3333;
-    --accent-green: #00b359;
+    color-scheme: light;
+    --paper-rgb: 248 247 243;
+    --ink-rgb: 32 33 36;
+    --soft-rgb: 71 70 65;
+    --muted-rgb: 98 96 91;
+    --indigo-rgb: 57 75 182;
+    --gold-rgb: 229 181 0;
+    --danger-rgb: 156 62 55;
+    --success-rgb: 22 111 73;
+    --water-rgb: 37 111 178;
+    --on-indigo: #fff;
+    --on-gold: #202124;
+    --on-danger: #fff;
+    --year-track: #eceae5;
+    --year-fill: #dad8d0;
+
+    --bg: rgb(var(--paper-rgb));
+    --text-main: rgb(var(--ink-rgb));
+    --text-muted: rgb(var(--muted-rgb));
+    --line: #e8e5de;
+    --line-hover: #c9c5bc;
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --paper-rgb: 27 26 25;
+    --ink-rgb: 242 239 232;
+    --soft-rgb: 213 208 197;
+    --muted-rgb: 186 181 170;
+    --indigo-rgb: 166 177 255;
+    --gold-rgb: 240 194 83;
+    --danger-rgb: 247 152 141;
+    --success-rgb: 125 217 169;
+    --water-rgb: 119 187 249;
+    --on-indigo: #202124;
+    --on-danger: #202124;
+    --year-track: #4b4641;
+    --year-fill: #393633;
+    --line: #3a3734;
+    --line-hover: #817b72;
 }
 
 * { 
@@ -56,9 +86,25 @@ body {
     border-color: var(--line-hover);
 }
 
+.glass-panel[role="dialog"] {
+    background: var(--bg);
+}
+
 /* ============================================================
    TYPOGRAPHY
    ============================================================ */
+.year-progress {
+    background: var(--year-track);
+    color: var(--text-main);
+}
+
+.year-progress-fill { background: var(--year-fill); }
+.year-progress .label-jp { color: inherit; }
+
+@media (prefers-contrast: more) {
+    .year-progress { box-shadow: inset 0 0 0 1px #6e6e73; }
+}
+
 .label-jp {
     font-family: 'Inter', sans-serif;
     letter-spacing: 0.1em;
@@ -151,8 +197,8 @@ body {
     transform: rotate(45deg);
 }
 .cyber-checkbox.emerald:checked {
-    border-color: var(--accent-green);
-    background: var(--accent-green);
+    border-color: rgb(var(--success-rgb));
+    background: rgb(var(--success-rgb));
 }
 
 /* ============================================================
@@ -185,6 +231,21 @@ body {
 .modal-leave-active { transition: opacity 0.2s ease; }
 .modal-enter-from,
 .modal-leave-to { opacity: 0; }
+.modal-leave-active { pointer-events: none; }
+
+.dialog-close {
+    position: relative;
+    z-index: 20;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    color: var(--text-muted);
+}
+.dialog-close-corner { position: absolute; top: 12px; right: 12px; }
+.dialog-close:hover { color: var(--text-main); background: rgb(var(--ink-rgb) / 0.08); }
+.dialog-close svg { width: 20px; height: 20px; pointer-events: none; }
 
 .modal-content-enter-active { transition: all 0.3s ease; }
 .modal-content-leave-active { transition: all 0.2s ease; }
@@ -194,3 +255,26 @@ body {
 .animate-spin-slow { animation: spin 4s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+
+[v-cloak] { display: none !important; }
+
+:focus-visible { outline: 2px solid rgb(var(--indigo-rgb)); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+.progress-on-indigo { color: var(--on-indigo); }
+.progress-on-gold { color: var(--on-gold); }
+.progress-on-indigo .label-jp,
+.progress-on-gold .label-jp { color: inherit; }
+.badge-on-danger { color: var(--on-danger); }
+
+.water-indigo-glow { box-shadow: 0 0 12px rgb(var(--indigo-rgb) / 0.4); }
+.water-gold-glow { box-shadow: 0 0 18px rgb(var(--gold-rgb) / 0.5); }
+.water-peak-glow { box-shadow: 0 0 22px rgb(var(--gold-rgb) / 0.7); }

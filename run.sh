@@ -1,31 +1,15 @@
 #!/bin/bash
+set -euo pipefail
 
-# Change to the script's directory
-cd "$(dirname "$0")"
+root=$(cd -- "$(dirname -- "$0")" && pwd)
+cd "$root"
 
-# Check if Python is installed
-if ! command -v python3 &> /dev/null
-then
-    echo "python3 could not be found. Please install Python 3."
-    exit 1
+if [[ ${1:-} == --import-legacy ]]; then
+    ./scripts/setup-local.sh --python-only
+else
+    ./scripts/setup-local.sh
 fi
 
-# Create virtual environment if it doesn't exist
-if [ ! -d "venv" ]; then
-    echo "Creating virtual environment..."
-    python3 -m venv venv
-fi
-
-# Activate virtual environment
-source venv/bin/activate
-
-# Install dependencies
-echo "Installing dependencies..."
-pip install -r requirements.txt
-
-# Run the Flask server
-echo "Starting the application..."
-echo "Access the app at: http://localhost:8000"
-export FLASK_APP=backend.main
-export FLASK_ENV=development
-python3 -m flask run --host=0.0.0.0 --port=8000
+export PYTHONPATH="$root/.build/vendor"
+export PYTHONDONTWRITEBYTECODE=1
+exec "$(cat .build/python-path)" -m backend.server "$@"
